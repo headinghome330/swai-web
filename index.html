@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>社工紀錄助理（SWAi Web）</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="container">
+    <div class="title-row">
+      <h1>社工紀錄助理（SWAi Web）</h1>
+      <div class="badge">純前端｜可離線｜全中文</div>
+    </div>
+    <p class="subtitle">
+      貼上或上傳原始資料 → 選輸出版本 → 一鍵生成 SOAP / 綜合評估 / 服務計畫（含 safe checklist）。
+    </p>
+  </header>
+
+  <main class="container grid">
+    <!-- 左側：輸入 -->
+    <section class="card">
+      <h2>① 輸入資料</h2>
+
+      <div class="row">
+        <label class="field">
+          <span>案件ID（例如 CH-2026-0001）</span>
+          <input id="caseId" type="text" placeholder="CH-2026-0001" />
+        </label>
+
+        <label class="field">
+          <span>日期</span>
+          <input id="date" type="date" />
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="field">
+          <span>案主姓名（可匿名）</span>
+          <input id="clientName" type="text" placeholder="陳○汶" />
+        </label>
+
+        <label class="field">
+          <span>年齡</span>
+          <input id="age" type="text" placeholder="12" />
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="field">
+          <span>案件類型</span>
+          <select id="caseType">
+            <option>初接案</option>
+            <option selected>追蹤中</option>
+            <option>高風險急性期</option>
+            <option>穩定後追蹤</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>場域/情境（選填）</span>
+          <input id="setting" type="text" placeholder="校訪/家訪/電訪/會談室…" />
+        </label>
+      </div>
+
+      <label class="field">
+        <span>關係推動焦點（選填）</span>
+        <input id="relationshipFocus" type="text" placeholder="以可承受頻率建立求助路徑與情緒命名…" />
+      </label>
+
+      <label class="field">
+        <span>限制/例外（選填）</span>
+        <input id="constraints" type="text" placeholder="家屬不便面訪，暫以電話/校訪維持追蹤…" />
+      </label>
+
+      <div class="row">
+        <label class="field">
+          <span>本次已執行（用分號隔開）</span>
+          <input id="actionsDone" type="text" placeholder="致電家屬；與校方聯繫；提醒避免自行減藥…" />
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="field">
+          <span>近期規劃（用分號隔開）</span>
+          <input id="actionsNext" type="text" placeholder="下次校訪；協調醫療回診；建立夜間求助路徑…" />
+        </label>
+      </div>
+
+      <label class="field">
+        <span>原始資料（逐字/電話紀錄/摘要）</span>
+        <textarea id="rawText" rows="10" placeholder="直接貼上內容即可…"></textarea>
+      </label>
+
+      <div class="row">
+        <label class="file">
+          <input id="fileInput" type="file" accept=".txt,.md,.log,.json" />
+          <span>上傳檔案（txt/md/json）</span>
+        </label>
+        <button id="btnClear" class="btn ghost" type="button">清空</button>
+      </div>
+
+      <div class="row">
+        <button id="btnSaveLocal" class="btn" type="button">儲存到本機（localStorage）</button>
+        <button id="btnLoadLocal" class="btn ghost" type="button">讀取本機草稿</button>
+      </div>
+
+      <p class="hint">
+        注意：本工具在你的瀏覽器本機運作，不會上傳資料到伺服器（除非你自行改成後端版）。
+      </p>
+    </section>
+
+    <!-- 右側：設定與輸出 -->
+    <section class="card">
+      <h2>② 版本與風險設定</h2>
+
+      <div class="row">
+        <div class="field">
+          <span>輸出版本</span>
+          <div class="radio-row">
+            <label><input type="radio" name="mode" value="short" /> 極簡（short）</label>
+            <label><input type="radio" name="mode" value="safe" checked /> 保守稽核（safe）</label>
+            <label><input type="radio" name="mode" value="field" /> 實務語感（field）</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label class="field">
+          <span>目前風險層級（可手動覆蓋）</span>
+          <select id="riskLevel">
+            <option selected>暫定</option>
+            <option>低</option>
+            <option>中</option>
+            <option>高</option>
+          </select>
+          <small class="micro">你也可以按下「自動檢核」用關鍵字粗估（可再調整）。</small>
+        </label>
+      </div>
+
+      <div class="row">
+        <button id="btnAutoCheck" class="btn ghost" type="button">自動檢核（關鍵字粗估）</button>
+      </div>
+
+      <h3>safe checklist（可勾選狀態）</h3>
+      <div id="checklist" class="checklist"></div>
+
+      <details class="details">
+        <summary>升級條件語句（可編輯）</summary>
+        <textarea id="escalationRule" rows="3"></textarea>
+      </details>
+
+      <div class="divider"></div>
+
+      <h2>③ 生成輸出</h2>
+      <div class="row">
+        <button id="btnGenerate" class="btn primary" type="button">一鍵生成</button>
+        <button id="btnExportJson" class="btn ghost" type="button">匯出 JSON（備份）</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="soap">SOAP</button>
+        <button class="tab" data-tab="assessment">綜合評估</button>
+        <button class="tab" data-tab="plan">服務計畫</button>
+      </div>
+
+      <div class="output-head">
+        <div id="outputMeta" class="output-meta"></div>
+        <div class="row">
+          <button id="btnCopy" class="btn ghost" type="button">複製</button>
+          <button id="btnDownload" class="btn" type="button">下載 txt</button>
+        </div>
+      </div>
+
+      <textarea id="outputArea" class="output" rows="14" readonly></textarea>
+
+      <p id="pendingHint" class="warn"></p>
+    </section>
+  </main>
+
+  <footer class="container footer">
+    <small>
+      免責聲明：本工具僅做文字整理與格式化輔助，風險評估與處遇決策仍應由專業人員依實務規範判斷。
+    </small>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>
